@@ -3,8 +3,9 @@
 #include <MAX30100_PulseOximeter.h>
 #include <SoftwareSerial.h>
 #include <Adafruit_MLX90614.h>
+#include "SPI.h"
 
-#define Debug false
+#define Debug true
 
 unsigned long readrequesttime = 0;
 
@@ -14,8 +15,10 @@ Adafruit_MLX90614  tempSensor = Adafruit_MLX90614();
 unsigned long tsLastReport = 0;
 
 uint8_t SPO2 = 0;
+uint8_t heartBit = 0;
 double temp = 0;
 String Data;
+String dataTosend;
 
 void Sensorinit();
 void ReadSensorData();
@@ -24,15 +27,29 @@ void setup() {
   if(Debug){
     Serial.begin(9600);
   }
-  BLSerial.begin(9600);
+  BLSerial.begin(38400);
   Sensorinit();
 }
 
 void loop() {
-  if(millis() - readrequesttime > 50){
+  oximeter.update();
+  if(millis() - readrequesttime > 500){
     readrequesttime = millis();
     ReadSensorData();
   }
+
+  // if(BLSerial.available()){
+  //   Data = BLSerial.readStringUntil(',');
+
+  //   if(Debug){
+  //     Serial.print("Bluetooth Data: ");
+  //     Serial.println(Data);
+  //   }
+
+  //   if(Data == "Req"){
+  //     BLSerial.print(dataTosend);
+  //   }
+  // }
 }
 
 void Sensorinit(){
@@ -60,20 +77,22 @@ void Sensorinit(){
 }
 
 void ReadSensorData(){
-  if(BLSerial.available()){
-    Data = BLSerial.readString();
-  }
+  // if(BLSerial.available()){
+  //   Data = BLSerial.readStringUntil(',');
+  // }
 
-  if(Data == "Req"){
+  // if(Data == "Req"){
 
     SPO2 = oximeter.getSpO2();
     while(SPO2 >= 100){
       SPO2 = oximeter.getSpO2();
     }
 
+    heartBit = oximeter.getHeartRate();
+
     temp = tempSensor.readObjectTempC();
 
-    String dataTosend = String(SPO2) + "," + String(temp,2) + "\n";
+    dataTosend = String(SPO2) + "," + String(heartBit) + "," + String(temp,2) + "\n";
     if(Debug){
       Serial.println(dataTosend);
     }
@@ -81,5 +100,5 @@ void ReadSensorData(){
     BLSerial.print(dataTosend);
 
     Data = "";
-  }
+  // }
 }
